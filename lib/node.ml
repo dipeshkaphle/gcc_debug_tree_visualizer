@@ -1,7 +1,8 @@
 open Base
 type expr = {
-  expr_name: string;
-  typename: string option;
+  expression_type: string;
+  result_type: string option;
+  var_name: string option;
   args: expr list option;
 } [@@deriving sexp]
 
@@ -10,8 +11,8 @@ type stmt = {
 } [@@deriving sexp]
 
 type stmt_list = {
+  result_type: string option;
   all_stmts : stmt list;
-  typename : string option;
 } [@@deriving sexp]
 
 

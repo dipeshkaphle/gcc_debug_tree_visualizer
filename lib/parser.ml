@@ -17,7 +17,7 @@ let rec split_after sexp l  =
 
 let split_after_and_get_all ?change_fn sexp l  =
   let res = ref [] in
-  let rec f sexp' l = match split_after sexp l with
+  let rec f sexp' l = match split_after sexp' l with
     | Some tl ->
       res := tl::( !res );
       let sexp''= Option.fold change_fn ~init:sexp' ~f:(fun acc g -> g acc) in
@@ -25,6 +25,12 @@ let split_after_and_get_all ?change_fn sexp l  =
     | None -> List.rev !res
   in f sexp l
 
+let rec get_all_that_satisfy_f ~f l =
+  match l with
+  | hd::tail ->
+    let tail' = get_all_that_satisfy_f ~f tail in
+    if (f l) then (hd, tail) :: tail' else tail'
+  | [] -> []
 
 let get_if_atom s = match s with
   | Sexp.Atom x -> x
@@ -57,18 +63,55 @@ let get_type_if_there (l: Sexp.t list) =
     )
   )
 
+let rec parse_expr_args (l: Sexp.t list) : Node.expr list option =
+  let all_args = split_after_and_get_all
+      (Sexp.Atom "arg:0")
+      l
+      ~change_fn:(fun s ->
+          let atom = get_if_atom s in
+          let l = String.split_on_chars ~on:[':'] atom |> List.rev in
+          let num = l |> List.hd_exn |> Int.of_string |> (fun x-> x+1) in
+          (Sexp.Atom (Printf.sprintf "arg:%d" num))
+        ) in
+  let first_sexp_of_all_args =(List.map ~f:List.hd all_args ) in
+  let expr_of_all_args = List.map ~f:(fun x ->
+      Option.( x>>= (fun y -> Option.try_with (fun () -> parse_expr ( get_if_list y )))))  first_sexp_of_all_args in
+  Option.try_with (fun () -> (List.map ~f:( Option.value_exn ?here:None ?error:None ?message:None) expr_of_all_args))
+and
 
-let parse_expr : Sexp.t list -> Node.expr = fun l ->
+  parse_expr_args' (l: Sexp.t list) : Node.expr list option =
+  let all_args =  get_all_that_satisfy_f
+      ~f:(fun l ->
+          match l with
+          | hd::tail -> (match (hd,List.hd tail) with
+              | (Sexp.Atom _, Some (Sexp.List (x::_))) -> true
+              | _ -> false)
+          | [] -> false
+        ) l in
+  let first_sexp_of_all_args = (List.map ~f:(fun (hd,tl) -> (hd, List.hd_exn tl) )all_args ) in
+  let expr_of_all_args = List.map ~f:(fun (hd,tl) ->
+      parse_expr ( get_if_list tl ) )  first_sexp_of_all_args in
+  Some expr_of_all_args
+
+and
+
+  parse_expr : Sexp.t list -> Node.expr = fun l ->
   let hd = List.hd_exn l in
   let tl = List.tl_exn l in
   match hd with
   |  Sexp.Atom t  ->
-    let expr_name = t in
-    let typename = get_type_if_there tl in
+    let expression_type = t in
+    let result_type= get_type_if_there tl in
+    let after_type = split_after (Sexp.Atom "type") l in
     Node.{
-      expr_name;
-      typename;
-      args = None
+      expression_type;
+      result_type;
+      (*A Node will either have type at 1 index or name, so only one of them will be Some at a time*)
+      Node.var_name = if Option.is_some result_type then None
+        else Option.(( List.nth tl 1 ) >>= (fun x-> Some ( Sexp.to_string  x) )) ;
+      args = parse_expr_args' (match after_type with
+          | Some rem ->  rem
+          | None -> tl)
     }
   | Sexp.List l' -> raise ( Parsing_error ("Unexpected list" ^ Sexp.to_string hd) )
 
@@ -78,14 +121,13 @@ let parse_stmt : Sexp.t -> Node.stmt = fun t ->
   | Sexp.List l -> { Node.exp = parse_expr l }
 
 
-(*(fun t -> { Node.exp = parse_expr t })*)
 
 let rec parse_stmtlist :  Sexp.t list -> Node.stmt_list  =
   (fun l ->
      let stmts = List.map ~f:List.hd_exn ( split_after_and_get_all (Sexp.Atom "stmt") l  ) in
      Node.({
+         result_type= get_type_if_there l;
          all_stmts =  List.map ~f:(parse_stmt) stmts ;
-         typename = get_type_if_there l
        })
   )
 
