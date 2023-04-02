@@ -1,0 +1,4 @@
+(executable
+ (public_name gcc_debug_tree_visualizer)
+ (name main)
+ (libraries gcc_debug_tree_visualizer))

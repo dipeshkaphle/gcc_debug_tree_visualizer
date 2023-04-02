@@ -1,0 +1,2 @@
+(test
+ (name gcc_debug_tree_visualizer))

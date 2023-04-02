@@ -1,0 +1,13 @@
+(library
+ (name gcc_debug_tree_visualizer)
+ (libraries base stdio)
+ (preprocess (pps ppx_jane))
+)
+
+
+(env
+ (dev
+  (flags
+   (:standard -w -20 -w -27 -w -32 -w -33 -w -34 -w -35 -w -37 -w -39)))
+ (release
+  (flags (:standard))))
