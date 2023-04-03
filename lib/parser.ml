@@ -63,7 +63,7 @@ let get_type_if_there (l: Sexp.t list) =
     )
   )
 
-let rec parse_expr_args (l: Sexp.t list) : Node.expr list option =
+let rec parse_expr_args (l: Sexp.t list) : (string * Node.expr ) list option =
   let all_args =  get_all_that_satisfy_f
       ~f:(fun l ->
           match l with
@@ -74,7 +74,7 @@ let rec parse_expr_args (l: Sexp.t list) : Node.expr list option =
         ) l in
   let first_sexp_of_all_args = (List.map ~f:(fun (hd,tl) -> (hd, List.hd_exn tl) )all_args ) in
   let expr_of_all_args = List.map ~f:(fun (hd,tl) ->
-      parse_expr ( get_if_list tl ) )  first_sexp_of_all_args in
+      ( get_if_atom hd, parse_expr ( get_if_list tl ) ) )  first_sexp_of_all_args in
   Some expr_of_all_args
 
 and

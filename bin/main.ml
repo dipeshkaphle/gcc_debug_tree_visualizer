@@ -1,50 +1,80 @@
 open Gcc_debug_tree_visualizer
-open Sexplib
+open Base
+open Gcc_debug_tree_visualizer.Node
+
 
 module G = Gcc_debug_tree_visualizer
 
-let s = "<statement_list 0x7f18ac7c6600
-    type <void_type 0x7f18ac62ff18 void VOID
-        align:8 warn_if_not_align:0 symtab:0 alias-set -1 canonical-type 0x7f18ac62ff18
-        pointer_to_this <pointer_type 0x7f18ac637000>>
-    side-effects head 0x7f18ac7f81b0 tail 0x7f18ac7f81c8 stmts 0x7f18ac7f73e8 0x7f18ac7f7410
+let get_new_name s i =
+  let x = Printf.sprintf "%s__%d" s !i in
+  i := !i + 1;
+  x
 
-    stmt <modify_expr 0x7f18ac7f73e8
-        type <real_type 0x7f18ac637348 double DF
-            size <integer_cst 0x7f18ac613d50 constant 64>
-            unit-size <integer_cst 0x7f18ac613d68 constant 8>
-            align:64 warn_if_not_align:0 symtab:0 alias-set -1 canonical-type 0x7f18ac637348 precision:64
-            pointer_to_this <pointer_type 0x7f18ac637930>>
-        side-effects
-        arg:0 <array_ref 0x7f18ac7d3ee0 type <real_type 0x7f18ac637348 double>
-            arg:0 <var_decl 0x7f18ac7db3f0 x> arg:1 <var_decl 0x7f18ac7db510 i>
-            testing/test.c:38:6 start: testing/test.c:38:5 finish: testing/test.c:38:8>
-        arg:1 <float_expr 0x7f18ac7c6a80 type <real_type 0x7f18ac637348 double>
-            side-effects
-            arg:0 <call_expr 0x7f18ac7f35d0 type <integer_type 0x7f18ac62f5e8 int>
-                side-effects
-                fn <addr_expr 0x7f18ac7c6a60 type <pointer_type 0x7f18ac7f6d20>
-                    constant arg:0 <function_decl 0x7f18ac7b4a00 rand>
-                    testing/test.c:38:12 start: testing/test.c:38:12 finish: testing/test.c:38:15>
-                testing/test.c:38:12 start: testing/test.c:38:12 finish: testing/test.c:38:17>>
-        testing/test.c:38:10 start: testing/test.c:38:5 finish: testing/test.c:38:17>
-    stmt <modify_expr 0x7f18ac7f7410 type <real_type 0x7f18ac637348 double>
-        side-effects
-        arg:0 <array_ref 0x7f18ac7d3f18 type <real_type 0x7f18ac637348 double>
-            arg:0 <var_decl 0x7f18ac7db480 y> arg:1 <var_decl 0x7f18ac7db510 i>
-            testing/test.c:39:6 start: testing/test.c:39:5 finish: testing/test.c:39:8>
-        arg:1 <float_expr 0x7f18ac7c6ac0 type <real_type 0x7f18ac637348 double>
-            side-effects
-            arg:0 <call_expr 0x7f18ac7f3600 type <integer_type 0x7f18ac62f5e8 int>
-                side-effects
-                fn <addr_expr 0x7f18ac7c6aa0 type <pointer_type 0x7f18ac7f6d20>
-                    constant arg:0 <function_decl 0x7f18ac7b4a00 rand>
-                    testing/test.c:39:12 start: testing/test.c:39:12 finish: testing/test.c:39:15>
-                testing/test.c:39:12 start: testing/test.c:39:12 finish: testing/test.c:39:17>>
-        testing/test.c:39:10 start: testing/test.c:39:5 finish: testing/test.c:39:17>>"
 
-let () =  s |> G.Parser.replace_parens
-          |> (fun x-> print_endline x ; x)
-          |> G.Parser.to_sexp
-          |> G.Parser.parse
-          |> Node.sexp_of_node_t |> Sexp.to_string_hum ~indent:4 |> print_endline
+let make_label (node: Node.node_t) =
+  match node with
+    Node (Stmt _) -> ""
+  | Node (Expr e) ->
+    Printf.sprintf
+      "expr_type:%s\\l\\\n|result_type:%s\\l\\\n|symbol_name:%s\\l\\"
+      e.expression_type
+      (Option.value ~default:"NA" e.result_type)
+      (Option.value  ~default:"NA" e.var_name)
+  | Node (Stmtlist sl) ->
+    Printf.sprintf
+      "result_type:%s"
+      (Option.value ~default:"NA" sl.result_type)
+
+let to_dot ( node: Node.node_t ) : Dot.graph =
+  let i = ref 0 in
+  let get_name = fun x -> get_new_name x i in
+  let rec f : Node.node_t -> Dot.graph = (fun node ->
+      match node with
+      | Node.Node (Node.Expr e) -> begin
+          let top_level_node = Dot.({
+              name = get_name "expr";
+              attr = Some ({shape=Record; lbl=(make_label node)})
+            }) in
+          let all_subexprs = List.map ~f:(fun (lbl, x)-> (lbl,f (Node.Node (Node.Expr x)))) (Option.value ~default:[] e.args ) in
+          let all_edges = List.map
+              ~f:(fun (lbl, x ) -> Dot.Edge_stmt Dot.{is_directed = true; edge= (top_level_node, Subgraph x); lbl=lbl}) all_subexprs in
+          Dot.( { stmt_list =  ( Node_stmt top_level_node )::all_edges; cluster= (get_name "cluster") })
+        end
+      | Node.Node (Node.Stmt s) -> begin
+          f (Node.Node (Node.Expr s.exp))
+        end
+      | Node.Node (Node.Stmtlist sl) -> begin
+          let top_level_node = Dot.({
+              name = get_name "stmt";
+              attr = Some ({shape=Record; lbl=(make_label node)})
+            }
+            )
+          in
+          let all_stmts_graph = List.map
+              ~f:(fun x ->  f (Node.Node (Node.Stmt x)))
+              sl.all_stmts in
+          let all_edges = List.mapi
+              ~f:(fun i x-> Dot.Edge_stmt Dot.{is_directed = true;
+                                               edge = (top_level_node , Subgraph x );
+                                               lbl= (Int.to_string i) }  ) all_stmts_graph in
+          Dot.({stmt_list=(Node_stmt top_level_node)::all_edges; cluster = get_name "cluster" } )
+        end
+    )
+  in
+  (f node)
+
+let argv = Sys.get_argv ()
+let s =
+  let filename = argv.(1) in
+  In_channel.with_open_text filename (fun c -> In_channel.input_all c)
+(* In_channel.input_all in_channel *)
+
+let dot_out = argv.(2)
+
+let t =  s |> G.Parser.replace_parens
+         (* |> (fun x-> Stdio.print_endline x ; x) *)
+         |> G.Parser.to_sexp
+         |> G.Parser.parse
+         |> to_dot
+         |> G.Dot.graph_to_string
+         |> (fun x -> Out_channel.with_open_text dot_out (fun c -> Out_channel.output_string c x ))

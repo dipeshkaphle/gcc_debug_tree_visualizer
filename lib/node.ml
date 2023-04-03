@@ -3,7 +3,7 @@ type expr = {
   expression_type: string;
   result_type: string option;
   var_name: string option;
-  args: expr list option;
+  args: ( string * expr ) list option;
 } [@@deriving sexp]
 
 type stmt = {
