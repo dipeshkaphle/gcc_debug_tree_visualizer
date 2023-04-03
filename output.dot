@@ -1,19 +1,19 @@
 digraph cluster__33{
 
-stmt__0 [shape=record;label="{result_type:general:void_type|exact:void
+stmt__0 [shape=record;label="{result_type:general:void_type,exact:void
 }"];
 
 subgraph cluster__16{
 
 expr__1 [shape=record;label="{expr_type:modify_expr\l\
-|result_type:general:real_type|exact:double\l\
+|result_type:general:real_type,exact:double\l\
 |symbol_name:NA\l\
 }"];
 
 subgraph cluster__7{
 
 expr__2 [shape=record;label="{expr_type:array_ref\l\
-|result_type:general:real_type|exact:double\l\
+|result_type:general:real_type,exact:double\l\
 |symbol_name:NA\l\
 }"];
 
@@ -43,21 +43,21 @@ expr__1  ->  expr__2 [lhead=cluster__7][label="arg:0"]
 subgraph cluster__15{
 
 expr__8 [shape=record;label="{expr_type:float_expr\l\
-|result_type:general:real_type|exact:double\l\
+|result_type:general:real_type,exact:double\l\
 |symbol_name:NA\l\
 }"];
 
 subgraph cluster__14{
 
 expr__9 [shape=record;label="{expr_type:call_expr\l\
-|result_type:general:integer_type|exact:int\l\
+|result_type:general:integer_type,exact:int\l\
 |symbol_name:NA\l\
 }"];
 
 subgraph cluster__13{
 
 expr__10 [shape=record;label="{expr_type:addr_expr\l\
-|result_type:general:pointer_type|exact:None\l\
+|result_type:general:pointer_type,exact:None\l\
 |symbol_name:NA\l\
 }"];
 
@@ -86,14 +86,14 @@ stmt__0  ->  expr__1 [lhead=cluster__16][label="0"]
 subgraph cluster__32{
 
 expr__17 [shape=record;label="{expr_type:modify_expr\l\
-|result_type:general:real_type|exact:double\l\
+|result_type:general:real_type,exact:double\l\
 |symbol_name:NA\l\
 }"];
 
 subgraph cluster__23{
 
 expr__18 [shape=record;label="{expr_type:array_ref\l\
-|result_type:general:real_type|exact:double\l\
+|result_type:general:real_type,exact:double\l\
 |symbol_name:NA\l\
 }"];
 
@@ -123,21 +123,21 @@ expr__17  ->  expr__18 [lhead=cluster__23][label="arg:0"]
 subgraph cluster__31{
 
 expr__24 [shape=record;label="{expr_type:float_expr\l\
-|result_type:general:real_type|exact:double\l\
+|result_type:general:real_type,exact:double\l\
 |symbol_name:NA\l\
 }"];
 
 subgraph cluster__30{
 
 expr__25 [shape=record;label="{expr_type:call_expr\l\
-|result_type:general:integer_type|exact:int\l\
+|result_type:general:integer_type,exact:int\l\
 |symbol_name:NA\l\
 }"];
 
 subgraph cluster__29{
 
 expr__26 [shape=record;label="{expr_type:addr_expr\l\
-|result_type:general:pointer_type|exact:None\l\
+|result_type:general:pointer_type,exact:None\l\
 |symbol_name:NA\l\
 }"];
 

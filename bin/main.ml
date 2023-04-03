@@ -25,26 +25,26 @@ let make_label (node: Node.node_t) =
       "result_type:%s"
       (Option.value ~default:"NA" sl.result_type)
 
-let to_dot ( node: Node.node_t ) : Dot.graph =
+let to_dot ( node: Node.node_t ) : Dot_intf.graph =
   let i = ref 0 in
   let get_name = fun x -> get_new_name x i in
-  let rec f : Node.node_t -> Dot.graph = (fun node ->
+  let rec f : Node.node_t -> Dot_intf.graph = (fun node ->
       match node with
       | Node.Node (Node.Expr e) -> begin
-          let top_level_node = Dot.({
+          let top_level_node = Dot_intf.({
               name = get_name "expr";
               attr = Some ({shape=Record; lbl=(make_label node)})
             }) in
           let all_subexprs = List.map ~f:(fun (lbl, x)-> (lbl,f (Node.Node (Node.Expr x)))) (Option.value ~default:[] e.args ) in
           let all_edges = List.map
-              ~f:(fun (lbl, x ) -> Dot.Edge_stmt Dot.{is_directed = true; edge= (top_level_node, Subgraph x); lbl=lbl}) all_subexprs in
+              ~f:(fun (lbl, x ) -> Dot_intf.Edge_stmt Dot.{is_directed = true; edge= (top_level_node, Subgraph x); lbl=lbl}) all_subexprs in
           Dot.( { stmt_list =  ( Node_stmt top_level_node )::all_edges; cluster= (get_name "cluster") })
         end
       | Node.Node (Node.Stmt s) -> begin
           f (Node.Node (Node.Expr s.exp))
         end
       | Node.Node (Node.Stmtlist sl) -> begin
-          let top_level_node = Dot.({
+          let top_level_node = Dot_intf.({
               name = get_name "stmt";
               attr = Some ({shape=Record; lbl=(make_label node)})
             }
@@ -54,9 +54,9 @@ let to_dot ( node: Node.node_t ) : Dot.graph =
               ~f:(fun x ->  f (Node.Node (Node.Stmt x)))
               sl.all_stmts in
           let all_edges = List.mapi
-              ~f:(fun i x-> Dot.Edge_stmt Dot.{is_directed = true;
-                                               edge = (top_level_node , Subgraph x );
-                                               lbl= (Int.to_string i) }  ) all_stmts_graph in
+              ~f:(fun i x-> Dot_intf.Edge_stmt Dot.{is_directed = true;
+                                                    edge = (top_level_node , Subgraph x );
+                                                    lbl= (Int.to_string i) }  ) all_stmts_graph in
           Dot.({stmt_list=(Node_stmt top_level_node)::all_edges; cluster = get_name "cluster" } )
         end
     )

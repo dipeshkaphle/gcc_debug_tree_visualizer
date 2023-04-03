@@ -55,7 +55,7 @@ let get_type_if_there (l: Sexp.t list) =
        Option.(List.hd lst >>=
                (fun general_type ->
                   Some (
-                    Printf.sprintf "general:%s|exact:%s"
+                    Printf.sprintf "general:%s,exact:%s"
                       (Sexp.to_string general_type)
                       (Option.fold ~init:"None"
                          ~f:(fun _ e -> Sexp.to_string e) (List.nth lst 2)  ) ) )
